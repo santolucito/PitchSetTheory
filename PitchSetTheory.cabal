@@ -29,6 +29,7 @@ executable Tester
   hs-source-dirs:      exe
   main-is:             Main.hs
   build-depends:       base >=4.9,
-                       PitchSetTheory
+                       PitchSetTheory,
+                       groups >= 0.4.1 
                        
   default-language:    Haskell2010

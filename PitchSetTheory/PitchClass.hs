@@ -5,14 +5,14 @@ module PitchSetTheory.PitchClass where
 
 import Data.Group
 
-type PitchClass = Int
+type PitchClass = Integer
 --newtype PitchClass = PitchSet [Int]
 
 instance Semigroup PitchClass where
   x <> y = (x + y) `mod` 12
 
 instance Monoid PitchClass where
-  mempty = 0 :: Int
+  mempty = 0 :: Integer
   mappend = (<>) 
 
 instance Group PitchClass where

@@ -1,68 +1,83 @@
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+-- this is only need for the definition of cyclic, once my change is accepted to Data.Groups this is not needed
+-- {-# LANGUAGE ScopedTypeVariables #-} 
+{-# LANGUAGE DataKinds, KindSignatures #-}
 
 module PitchSetTheory.Dihedral where
 
 import PitchSetTheory.PitchClass
 import Data.Group
+import GHC.TypeLits
 
---I would love to be able to pull out the 12 to a type level literal
---so that I can generalize to Dihedral N
-data Dihedral_12 = Dihedral_12
-  { r :: Int  -- how many times to rotate
-  , s :: Bool -- flip or not
+-- | The Dihedral n group captures the set of closed operations (transpose and transpose inverse) on a PitchSet
+--   This definition is only useful if you are composing operations (eg in the Cyclic instance)
+--   Applying single operation on a PitchSet is the same regardless of the group definition
+data KnownNat n => Dihedral (n :: Nat) = Dihedral
+  { r :: Integer
+  , s :: Bool
   } deriving Show
 
-instance Eq Dihedral_12 where
+-- seems wasteful that I should have to put the type context here if it is already avaible in the def of Dihedral...
+instance KnownNat n => Eq (Dihedral n) where
   x == y = 
     (s x == s y) &&
     ((r x == r y) || 
-     (r x == (12-(r y)))
+     (r x == ((natVal x) -(r y)))
     )
 
-instance Semigroup Dihedral_12 where
+instance KnownNat n => Semigroup (Dihedral n) where
   x <> y = 
-    Dihedral_12 
-      { r = (r x + r y) `mod` 12
+    Dihedral
+      { r = (r x + r y) `mod` (natVal x)
       , s = s x /= s y --xor
-      }
+      } --do i need a type annotation here? guess not...
 
-instance Monoid Dihedral_12 where
-  mempty = Dihedral_12 {r=0,s=False}
+instance KnownNat n => Monoid (Dihedral n)where
+  mempty = Dihedral {r=0,s=False}
   mappend = (<>)
 
-instance Group Dihedral_12 where
+instance KnownNat n => Group (Dihedral n) where
  invert x = 
-   Dihedral_12 
-     { r = 12-(r x)
+   Dihedral
+     { r = (natVal x) -(r x)
      , s = s x --to invert flipped, flip back, otherwise leave it alone
      } 
 
-instance Abelian Dihedral_12
+-- I need to check that the group is actually abelian (this class doesnt give us anything useful anyway)
+instance KnownNat n => Abelian (Dihedral n)
 
+-- this is only true for certain n
+-- actually now i can properly express that
+instance KnownNat n => Cyclic (Dihedral n) where
+  generator = Dihedral {r = 1, s = True}
+
+{-
+I have put these in the Group package, but that change hasnt been accepted yet
 class Group a => Cyclic a where
   generator :: a
 
--- D12 is not actually cyclic, but it is dicyclic
-instance Cyclic Dihedral_12 where
-  generator = Dihedral_12 {r = 1, s = True}
-
-generate :: forall a. (Cyclic a) => [a]
-generate =
+generated :: forall a. (Cyclic a) => [a]
+generated =
   iterate (mappend (generator::a)) mempty
+-}
 
-applyOpP:: Dihedral_12 -> PitchClass -> PitchClass
+-- there is something fishy here about composing operations
+-- somehow it seems that it will bypass the group composiiton strucutre of Dihedral
+-- do i need a monad to control the composition? 
+-- somehow i shouldnt allow a user to ...
+-- does this really matter?
+applyOpP:: Dihedral n -> PitchClass -> PitchClass
 applyOpP f =
   (mappend (r f)). (if s f then invert else id)
 
-applyOp :: Dihedral_12 -> PitchSet -> PitchSet
+applyOp :: Dihedral n -> PitchSet -> PitchSet
 applyOp f = map $ applyOpP f
 
-t :: Int -> PitchSet -> PitchSet
-t n = applyOp $ Dihedral_12 { r = n, s = False }
+t :: Integer -> PitchSet -> PitchSet
+t n = applyOp $ Dihedral { r = n, s = False }
 
-ti :: Int -> PitchSet -> PitchSet 
-ti n = applyOp $ Dihedral_12 { r = n, s = True }
+ti :: Integer -> PitchSet -> PitchSet 
+ti n = applyOp $ Dihedral { r = n, s = True }
 
 
 
