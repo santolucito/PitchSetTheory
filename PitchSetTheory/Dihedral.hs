@@ -50,15 +50,6 @@ instance KnownNat n => Cyclic (Dihedral n) where
   generator = Dihedral {r = 1, s = True}
 
 
--- I have put these in the Group package, but that change hasnt been accepted yet
-class Group a => Cyclic a where
-  generator :: a
-
-generated :: Cyclic a => [a]
-generated =
-  iterate (mappend (generator)) mempty
-
-
 -- there is something fishy here about composing operations
 -- somehow it seems that it will bypass the group composiiton strucutre of Dihedral
 -- do i need a monad to control the composition? 
